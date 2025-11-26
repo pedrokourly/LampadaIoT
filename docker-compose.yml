@@ -1,0 +1,64 @@
+services:
+
+  hivemq:
+    container_name: hivemq
+    image: hivemq/hivemq4:latest
+    ports:
+      - "1883:1883"   # MQTT
+      - "8080:8080"   # Painel admin (se habilitado)
+    environment:
+      HIVEMQ_USER: admin
+      HIVEMQ_PASSWORD: hivemq
+    volumes:
+      - hivemq-data:/opt/hivemq/data
+      - hivemq-config:/opt/hivemq/conf
+    restart: unless-stopped
+    networks:
+      - iot-net
+
+  influxdb:
+    container_name: influxdb
+    image: influxdb:2.7.5
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: admin12345678
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: kGsC0dCIFG1zmaoYZ7J1DQImcBanWNzS4LA4Du1FMyCnsnbsxOOs4r_4SseA_y_T_Ud0i-TiOMQE1NYo4gPMyg==
+      DOCKER_INFLUXDB_INIT_ORG: IFTMOrg
+      DOCKER_INFLUXDB_INIT_BUCKET: LampadaIOT
+    volumes:
+      - influxdb2-data:/var/lib/influxdb2
+      - influxdb2-config:/etc/influxdb2
+    networks:
+      - iot-net
+    restart: unless-stopped
+
+  nodered:
+    image: nodered/node-red:latest
+    container_name: nodered
+    ports:
+      - "1880:1880"
+    volumes:
+      - ./nrdata:/data
+    environment:
+      - FLOWS=flows.json
+    networks:
+      - iot-net
+    depends_on:
+      - influxdb
+      - hivemq
+    restart: unless-stopped
+
+networks:
+  iot-net:
+
+
+volumes:
+  influxdb2-data:
+  influxdb2-config:
+  grafana_data:
+  node_red_data:
+  hivemq-data:
+  hivemq-config:
