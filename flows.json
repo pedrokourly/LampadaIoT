@@ -11,8 +11,8 @@
         "id": "bbc3c6b10e51d40c",
         "type": "mqtt in",
         "z": "9ddcdea959086c8e",
-        "name": "Recebe Temperatura do Arduino",
-        "topic": "arduino/temperatura",
+        "name": "Recebe Luminosidade do Arduino",
+        "topic": "arduino/luz",
         "qos": "0",
         "datatype": "utf8",
         "broker": "31d9e4404cdfd5e6",
@@ -20,8 +20,8 @@
         "rap": true,
         "rh": 0,
         "inputs": 0,
-        "x": 130,
-        "y": 200,
+        "x": 210,
+        "y": 260,
         "wires": [
             [
                 "cc7a7dc2e0632243"
@@ -33,15 +33,15 @@
         "type": "function",
         "z": "9ddcdea959086c8e",
         "name": "Formata para InfluxDB",
-        "func": "let medida_str = msg.payload;\nlet medida_num = parseFloat(medida_str);\n\nif (isNaN(medida_num)) {\n    node.error(\"Payload não é um número válido: \" + medida_str);\n    return null;\n}\n\nmsg.payload = {\n    temperatura: medida_num\n};\n\nreturn msg;",
+        "func": "let medida_str = msg.payload;\nlet medida_num = parseInt(medida_str);\n\nif (isNaN(medida_num)) {\n    node.error(\"Payload não é um número válido: \" + medida_str);\n    return null;\n}\n\nmsg.payload = {\n    luz: medida_num\n};\n\nreturn msg;",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 400,
-        "y": 200,
+        "x": 480,
+        "y": 260,
         "wires": [
             [
                 "28f02fb21be754e9",
@@ -53,6 +53,7 @@
         "id": "28f02fb21be754e9",
         "type": "debug",
         "z": "9ddcdea959086c8e",
+        "d": true,
         "name": "debug 1",
         "active": true,
         "tosidebar": true,
@@ -62,8 +63,8 @@
         "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
-        "x": 660,
-        "y": 280,
+        "x": 740,
+        "y": 340,
         "wires": []
     },
     {
@@ -72,23 +73,120 @@
         "z": "9ddcdea959086c8e",
         "influxdb": "e11b55b37797fc59",
         "name": "Grava no InfluxDB",
-        "measurement": "temperatura",
+        "measurement": "luz",
         "precision": "",
         "retentionPolicy": "",
         "database": "database",
         "precisionV18FluxV20": "ms",
         "retentionPolicyV18Flux": "",
-        "org": "iftm",
-        "bucket": "iotbiomedica",
-        "x": 670,
-        "y": 200,
+        "org": "IFTMOrg",
+        "bucket": "LampadaIOT",
+        "x": 750,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "16fc458f83de21c4",
+        "type": "vsh-virtual-device",
+        "z": "9ddcdea959086c8e",
+        "name": "Lâmpada Ailton",
+        "topic": "",
+        "metadata": "",
+        "connection": "a421e432d0908637",
+        "template": "SWITCH",
+        "retrievable": false,
+        "passthrough": false,
+        "diff": false,
+        "filter": false,
+        "filterTopic": false,
+        "plan": "free",
+        "x": 160,
+        "y": 460,
+        "wires": [
+            [
+                "0f7b566feb9e4b8c",
+                "8b5195fef2ef6a30"
+            ]
+        ]
+    },
+    {
+        "id": "fb0b87207e079a9d",
+        "type": "mqtt out",
+        "z": "9ddcdea959086c8e",
+        "name": "Controle de Lampada",
+        "topic": "arduino/lampada",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "31d9e4404cdfd5e6",
+        "x": 860,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "0f7b566feb9e4b8c",
+        "type": "debug",
+        "z": "9ddcdea959086c8e",
+        "name": "debug 2",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 420,
+        "y": 540,
+        "wires": []
+    },
+    {
+        "id": "8b5195fef2ef6a30",
+        "type": "function",
+        "z": "9ddcdea959086c8e",
+        "name": "Transforma o payload da alexa para o MQTT",
+        "func": "// Verifica se o estado dentro do pacote da Alexa é \"ON\"\nif (msg.payload.powerState === \"ON\") {\n    msg.payload = \"1\"; // Manda apenas o numero 1\n} \nelse {\n    msg.payload = \"0\"; // Manda apenas o numero 0\n}\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 490,
+        "y": 460,
+        "wires": [
+            [
+                "fb0b87207e079a9d",
+                "9e807bb343c61a48"
+            ]
+        ]
+    },
+    {
+        "id": "9e807bb343c61a48",
+        "type": "debug",
+        "z": "9ddcdea959086c8e",
+        "name": "debug 3",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 820,
+        "y": 540,
         "wires": []
     },
     {
         "id": "31d9e4404cdfd5e6",
         "type": "mqtt-broker",
         "name": "HiveMQ Publico",
-        "broker": "hivemq",
+        "broker": "192.168.100.150",
         "port": 1883,
         "clientid": "",
         "autoConnect": true,
@@ -131,11 +229,22 @@
         "rejectUnauthorized": true
     },
     {
-        "id": "e0f91796d6e1a893",
+        "id": "a421e432d0908637",
+        "type": "vsh-connection",
+        "name": "pedrohenriquekourly@hotmail.com",
+        "port": "8883",
+        "accessTokenExpiry": "1764635681721",
+        "debug": false,
+        "backendUrl": "https://kfd5m4a21f.execute-api.eu-west-1.amazonaws.com/dev",
+        "lwaClientId": "amzn1.application-oa2-client.3f1bb07133854b078261ad43f2484c18"
+    },
+    {
+        "id": "f08334c520d6d3d6",
         "type": "global-config",
         "env": [],
         "modules": {
-            "node-red-contrib-influxdb": "0.7.0"
+            "node-red-contrib-influxdb": "0.7.0",
+            "node-red-contrib-virtual-smart-home": "4.5.1"
         }
     }
 ]

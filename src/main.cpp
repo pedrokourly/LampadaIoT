@@ -8,9 +8,9 @@
 // CONFIGURAÇÃO ETHERNET
 // ----------------------
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-IPAddress ip(192, 168, 58, 177);
-IPAddress dns(192, 168, 58, 254);
-IPAddress gateway(192, 168, 58, 254);
+IPAddress ip(192, 168, 100, 177);
+IPAddress dns(192, 168, 100, 254);
+IPAddress gateway(192, 168, 100, 254);
 IPAddress subnet(255, 255, 255, 0);
 
 
@@ -19,7 +19,7 @@ const long intervalo = 1000;
 unsigned long tempoAnterior = 0;
 
 // MQTT Configuration 
-const char* mqttServer = "192.168.58.3"; //Ex. "broker.hivemq.com";
+const char* mqttServer = "192.168.100.150"; //Ex. "broker.hivemq.com";
 const char* mqttUsername = "admin";
 const char* mqttPassword = "hivemq";
 const int mqtt_port = 1883;
@@ -45,6 +45,7 @@ void reconnect() {
       Serial.println(" conectado!");
       Serial.print("Client ID: ");
       Serial.println(clientId);
+      client.subscribe("arduino/lampada");
     } else {
       // Se deu errado apresenta o que falhou.
       Serial.print(" falhou, rc=");
@@ -71,19 +72,34 @@ void reconnect() {
   }
 }
 
+// Função que roda quando chega mensagem no tópico assinado
+void callback(char* topic, byte* payload, unsigned int length) {
+  Serial.print("Mensagem chegou no tópico: ");
+  Serial.print(topic);
+  Serial.print(" | Conteúdo: ");
+
+  // Converte o payload para char para facilitar a comparação
+  char comando = (char)payload[0];
+  Serial.println(comando);
+
+  // Lógica de controle (Ex: '1' liga, '0' desliga)
+  // Supondo que o RELÉ está no pino 4 e aciona com LOW (comum em módulos relé)
+  if (comando == '1') {
+    digitalWrite(53, LOW); // Liga (se for relé ativo baixo)
+    Serial.println("Lâmpada LIGADA via MQTT");
+  } 
+  else if (comando == '0') {
+    digitalWrite(53, HIGH); // Desliga
+    Serial.println("Lâmpada DESLIGADA via MQTT");
+  }
+}
+
 void setup() {
   pinMode(3, OUTPUT);
   digitalWrite(3, HIGH);
 
-  pinMode(4, OUTPUT);
-  digitalWrite(4, HIGH);
-
   pinMode(53, OUTPUT);
 
-
-  //Configura o AD para o sensor de temperatura
-  analogReference(INTERNAL1V1);
-  
   //Configura a serial
   Serial.begin(9600);
   while (!Serial) {
@@ -93,10 +109,14 @@ void setup() {
   Serial.println("=== INICIANDO SISTEMA ===");
   Serial.println("Configurando Ethernet...");
   
-  Ethernet.init(10);
-
-  //Conecta na Rede
-  Ethernet.begin(mac, ip, dns, gateway, subnet);
+  // Tenta DHCP primeiro
+  if (Ethernet.begin(mac) == 0) {
+    Serial.println("DHCP falhou, usando IP fixo...");
+    Ethernet.begin(mac, ip, gateway, dns);
+  
+  } else {
+    Serial.println("DHCP conectado com sucesso!");
+  }
 
   // Aguarda estabilizar a conexão
   delay(2000);
@@ -130,7 +150,8 @@ void setup() {
   
   // Configura o servidor MQTT
   client.setServer(mqttServer, mqtt_port);
-  
+  client.setCallback(callback);
+
   // Configuração adicional do cliente MQTT
   client.setKeepAlive(60);
   client.setSocketTimeout(30);
@@ -158,13 +179,19 @@ void loop() {
     tempoAnterior = tempoAtual;
 
     //Lê a temperatura
-    int binTemp = analogRead(A0);
-    float voltage= binTemp * (1.1 / 1023.0) * 100;
+    int leituraBruta = analogRead(A0);
+    int porcentagem = map(leituraBruta, 0, 1023, 0, 100);
 
     // Constrói a mensagem para o MQTT
     char mensagem[10];
-    dtostrf(voltage, 1, 2, mensagem);
+    itoa(porcentagem, mensagem, 10);
     
+    Serial.print("Leitura LDR: ");
+    Serial.print(leituraBruta);
+    Serial.print(" | Luz: ");
+    Serial.print(mensagem);
+    Serial.println("%");
+
     // Publica a mensagem no broker MQTT se estiver conectado
     if (client.connected()) {
       client.publish(mqttTopic, mensagem);
