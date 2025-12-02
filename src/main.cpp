@@ -4,6 +4,9 @@
 #include <PubSubClient.h>
 
 
+int RELE_PORT = 53;
+int SENSOR_PORT = A0;
+
 // ----------------------
 // CONFIGURAÇÃO ETHERNET
 // ----------------------
@@ -85,11 +88,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
   // Lógica de controle (Ex: '1' liga, '0' desliga)
   // Supondo que o RELÉ está no pino 4 e aciona com LOW (comum em módulos relé)
   if (comando == '1') {
-    digitalWrite(53, LOW); // Liga (se for relé ativo baixo)
+    digitalWrite(RELE_PORT, LOW); // Liga (se for relé ativo baixo)
     Serial.println("Lâmpada LIGADA via MQTT");
   } 
   else if (comando == '0') {
-    digitalWrite(53, HIGH); // Desliga
+    digitalWrite(RELE_PORT, HIGH); // Desliga
     Serial.println("Lâmpada DESLIGADA via MQTT");
   }
 }
@@ -98,7 +101,7 @@ void setup() {
   pinMode(3, OUTPUT);
   digitalWrite(3, HIGH);
 
-  pinMode(53, OUTPUT);
+  pinMode(RELE_PORT, OUTPUT);
 
   //Configura a serial
   Serial.begin(9600);
@@ -179,7 +182,7 @@ void loop() {
     tempoAnterior = tempoAtual;
 
     //Lê a temperatura
-    int leituraBruta = analogRead(A0);
+    int leituraBruta = analogRead(SENSOR_PORT);
     int porcentagem = map(leituraBruta, 0, 1023, 0, 100);
 
     // Constrói a mensagem para o MQTT
